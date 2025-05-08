@@ -37,13 +37,20 @@ func ParseRole(s string) (Role, error) {
 // User define el modelo de usuario para la base de datos
 type User struct {
 	ID        uint           `gorm:"primaryKey"`
-	CreatedAt time.Time      // Timestamp de creación (automático por GORM)
-	UpdatedAt time.Time      // Timestamp de última actualización (automático por GORM)
-	DeletedAt gorm.DeletedAt `gorm:"index"` // Para borrado lógico (soft delete)
+	CreatedAt time.Time      `json:"created_at"` // Timestamp de creación (automático por GORM)
+	UpdatedAt time.Time      `json:"updated_at"` // Timestamp de última actualización (automático por GORM)
+	DeletedAt gorm.DeletedAt `gorm:"index"`      // Para borrado lógico (soft delete)
 
-	Username     string `gorm:"uniqueIndex;not null;size:50"` // Nombre de usuario, único y no nulo
-	PasswordHash string `gorm:"not null"`                     // Hash de la contraseña
-	Role         Role   `gorm:"type:varchar(20);not null"`    // Rol del usuario (ADMIN o EMPLOYEE)
+	Username     string `gorm:"type:varchar(50);uniqueIndex;not null" json:"username"`
+	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"` // No exponer en JSON por defecto
+	Role         Role   `gorm:"type:varchar(20);not null" json:"role"`
+
+	// Relación One-to-One con EmployeeDetail
+	// El UserID en EmployeeDetail apuntará a este User.
+	// Usamos SET NULL para OnDelete para que si se borra el usuario, el employee_detail.user_id se vuelva NULL,
+	// pero el registro EmployeeDetail podría conservarse si se desea (o eliminarse por separado).
+	// Si se quiere borrar en cascada el EmployeeDetail cuando se borra el User, usar OnDelete:CASCADE.
+	EmployeeDetail EmployeeDetail `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"employee_details,omitempty"`
 
 	// Podríamos añadir más campos aquí si son necesarios para el perfil,
 	// como FirstName, LastName, Email, IsActive, etc.

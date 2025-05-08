@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom'; 
 // Podríamos añadir un archivo CSS específico para LoginPage más adelante
 // import './LoginPage.css'; 
 
@@ -7,6 +8,11 @@ function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); 
+  const location = useLocation(); 
+
+  // Determinar a dónde redirigir después del login
+  const from = location.state?.from?.pathname || "/admin/users"; 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -16,7 +22,7 @@ function LoginPage() {
     console.log('Attempting login with:', { username, password });
 
     try {
-      const response = await fetch('/api/v1/users/login', {
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,14 +35,14 @@ function LoginPage() {
       if (response.ok) {
         console.log('Login successful:', data);
         localStorage.setItem('token', data.token); // Guardar el token
-        // TODO: Redirigir a un dashboard o página principal.
-        // Por ahora, podemos simplemente cambiar un estado para mostrar un mensaje de éxito
-        // o limpiar el formulario y mostrar un mensaje.
-        alert('¡Login exitoso! Token guardado. Redirección pendiente.'); 
-        // Idealmente, aquí usaríamos react-router-dom para navegar a otra ruta.
-        // Ejemplo: history.push('/dashboard'); donde history es useHistory() de react-router-dom
-        setUsername(''); // Limpiar campos tras login exitoso
-        setPassword('');
+        
+        // Redirigir usando navigate
+        navigate(from, { replace: true });
+
+        // Ya no necesitamos el alert o limpiar campos aquí, la redirección se encarga
+        // alert('¡Login exitoso! Token guardado. Redirección pendiente.'); 
+        // setUsername(''); 
+        // setPassword('');
       } else {
         setError(data.error || `Error: ${response.status} - ${response.statusText}`);
       }

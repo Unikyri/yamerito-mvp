@@ -11,6 +11,9 @@ import (
 	"github.com/Unikyri/yamerito-mvp/internal/handlers"
 	"github.com/Unikyri/yamerito-mvp/internal/auth"
 	"github.com/Unikyri/yamerito-mvp/internal/middleware"
+	"github.com/Unikyri/yamerito-mvp/internal/models"
+	"github.com/Unikyri/yamerito-mvp/internal/services"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -63,15 +66,35 @@ func main() {
 	})
 
 	// --- Configurar Handlers y Rutas de la API ---
-	userHandler := handlers.NewUserHandler(db)
+	// Inicializar servicios
+	authSvc := services.NewAuthService(db)
+	userSvc := services.NewUserService(db) // NewUserService devuelve *UserService, que implementa UserServiceInterface
+
+	// Inicializar handlers
+	authHandler := handlers.NewAuthHandler(authSvc)
+	userHandler := handlers.NewUserHandler(userSvc) 
 
 	// Agrupar rutas de la API bajo /api/v1
-	v1 := router.Group("/api/v1")
+	apiV1 := router.Group("/api/v1")
 	{
-		userHandler.RegisterUserRoutes(v1) // Rutas públicas: /users/register, /users/login
+		// Rutas de autenticación (login)
+		authHandler.RegisterAuthRoutes(apiV1)
+
+		// Rutas de usuario (login, etc. - las que queden públicas o semi-públicas)
+		// userHandler.RegisterUserRoutes(apiV1) // Esta función ahora está vacía o eliminada, ya que el login se movió.
+
+		// Rutas de administración para gestión de usuarios
+		// Estas rutas requieren autenticación y rol de Admin.
+		adminRoutes := apiV1.Group("/admin")
+		adminRoutes.Use(middleware.AuthMiddleware())                       // Primero, autenticar JWT
+		adminRoutes.Use(middleware.AuthorizeRole(models.RoleAdmin)) // Luego, verificar rol Admin
+		{
+			// Aquí registramos las rutas que userHandler expondrá para /admin/users/*
+			userHandler.RegisterAdminUserRoutes(adminRoutes) // Pasamos el grupo adminRoutes
+		}
 
 		// Grupo de rutas autenticadas
-		authRequired := v1.Group("") // Podría ser /auth o directamente bajo v1
+		authRequired := apiV1.Group("") // Podría ser /auth o directamente bajo v1
 		authRequired.Use(middleware.AuthMiddleware()) // Aplicar middleware JWT a este grupo
 		{
 			// Endpoint de ejemplo para obtener información del usuario autenticado
@@ -90,15 +113,6 @@ func main() {
 					"expires_at": claims.ExpiresAt.Time,
 				})
 			})
-
-			// Ejemplo de ruta protegida solo para ADMINS:
-			// adminRoutes := authRequired.Group("/admin")
-			// adminRoutes.Use(middleware.AuthorizeRole(models.RoleAdmin))
-			// {
-			// 	adminRoutes.GET("/some-admin-action", func(c *gin.Context) {
-			// 		c.JSON(http.StatusOK, gin.H{"message": "Acción de administrador realizada"})
-			// 	})
-			// }
 		}
 	}
 	// --- Fin Configurar Handlers y Rutas de la API ---

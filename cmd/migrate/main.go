@@ -4,6 +4,7 @@ import (
 	"log"
 	// "os" // Para argumentos de línea de comandos en el futuro
 
+	"github.com/Unikyri/yamerito-mvp/internal/auth" // Importar para hashear contraseña
 	"github.com/Unikyri/yamerito-mvp/internal/config"
 	"github.com/Unikyri/yamerito-mvp/internal/database"
 	"github.com/Unikyri/yamerito-mvp/internal/models"
@@ -56,6 +57,77 @@ func main() {
 				return err
 			},
 		},
+		{
+			ID: "20250508161000_create_employee_details_table", // Nuevo ID para esta migración
+			Migrate: func(tx *gorm.DB) error {
+				log.Println("Ejecutando migración: creando tabla 'employee_details'...")
+				err := tx.AutoMigrate(&models.EmployeeDetail{})
+				if err == nil {
+					log.Println("Tabla 'employee_details' creada/actualizada exitosamente.")
+				}
+				return err
+			},
+			Rollback: func(tx *gorm.DB) error {
+				log.Println("Ejecutando rollback: eliminando tabla 'employee_details'...")
+				err := tx.Migrator().DropTable(&models.EmployeeDetail{})
+				if err == nil {
+					log.Println("Tabla 'employee_details' eliminada exitosamente.")
+				}
+				return err
+			},
+		},
+		// --- Seed para el Usuario Administrador ---
+		{
+			ID: "20250508150000_seed_admin_user", // Timestamp aproximado actual para el seed
+			Migrate: func(tx *gorm.DB) error {
+				log.Println("Ejecutando seed: creando usuario administrador 'wolfang'...")
+
+				adminUsername := "wolfang"
+				adminPassword := "w01f4ng@"
+
+				// Verificar si el usuario admin ya existe
+				var existingAdmin models.User
+				if err := tx.Where("username = ?", adminUsername).First(&existingAdmin).Error; err == nil {
+					log.Printf("Usuario administrador '%s' ya existe. Saltando seed.", adminUsername)
+					return nil // Ya existe, no hacer nada
+				} else if err != gorm.ErrRecordNotFound {
+					// Otro error al buscar, retornar el error
+					log.Printf("Error al verificar existencia del usuario admin '%s': %v", adminUsername, err)
+					return err
+				}
+
+				// Hashear la contraseña del admin
+				hashedPassword, err := auth.HashPassword(adminPassword, nil) // Usar nil para params por defecto
+				if err != nil {
+					log.Printf("Error al hashear la contraseña para el usuario admin '%s': %v", adminUsername, err)
+					return err
+				}
+
+				adminUser := models.User{
+					Username:     adminUsername,
+					PasswordHash: hashedPassword,
+					Role:         models.RoleAdmin,
+				}
+
+				if err := tx.Create(&adminUser).Error; err != nil {
+					log.Printf("Error al crear usuario administrador '%s': %v", adminUsername, err)
+					return err
+				}
+
+				log.Printf("Usuario administrador '%s' creado exitosamente.", adminUsername)
+				return nil
+			},
+			Rollback: func(tx *gorm.DB) error {
+				// En el rollback, podríamos optar por eliminar el usuario admin si se desea.
+				// Sin embargo, para un seed, a veces el rollback se deja vacío o simplemente loguea.
+				// Por seguridad y para no perder el admin accidentalmente, solo loguearemos.
+				log.Println("Ejecutando rollback de seed_admin_user: No se eliminará el usuario admin 'wolfang' automáticamente.")
+				// Si quisieras eliminarlo: 
+				// return tx.Where("username = ? AND role = ?", "wolfang", models.RoleAdmin).Delete(&models.User{}).Error
+				return nil
+			},
+		},
+		// --- Fin del Seed para el Usuario Administrador ---
 		// --- Aquí puedes añadir más migraciones en el futuro ---
 		// {
 		// 	ID: "YYYYMMDDHHMMSS_add_new_field_to_users",
