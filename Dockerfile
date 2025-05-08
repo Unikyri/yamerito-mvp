@@ -34,16 +34,15 @@ COPY app.go .
 # Copiar cualquier otro archivo .go o directorio necesario en la raíz o subdirectorios
 # Ejemplo: COPY main.go .
 
-# Copiar el frontend ya construido (con frontend/dist) al lugar esperado por Wails
-# Esto asegura que 'wails build' lo encuentre.
-COPY --from=builder /app/frontend /app/frontend
+# El directorio 'frontend' con 'frontend/dist' ya está en /app/frontend desde los pasos anteriores.
+# Wails build debería encontrarlo automáticamente.
 
 # Construir la aplicación Wails. El binario se llamará 'yamerito-mvp' (por tu go.mod o wails.json)
 # Usamos el nombre 'yamerito-server' para el output para claridad.
 RUN wails build -trimpath -ldflags="-s -w" -o yamerito-server
 
 # Etapa 2: Imagen Final (Runtime)
-FROM alpine:latest
+FROM alpine:latest AS final
 
 # Instalar certificados CA para conexiones HTTPS si tu app los necesita
 RUN apk --no-cache add ca-certificates
