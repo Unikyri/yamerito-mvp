@@ -31,6 +31,7 @@ COPY go.mod go.sum ./
 COPY cmd cmd/
 COPY internal internal/
 COPY app.go .
+COPY wails.json ./
 # Copiar cualquier otro archivo .go o directorio necesario en la raíz o subdirectorios
 # Ejemplo: COPY main.go .
 
