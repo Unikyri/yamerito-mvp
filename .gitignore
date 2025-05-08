@@ -1,3 +1,32 @@
-build/bin
-node_modules
-frontend/dist
+# Environment variables
+.env
+
+# Go build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of coverage tool, created with `go test -coverprofile`
+coverage.out
+profile.out
+
+# Wails build outputs
+build/bin/
+build/assetdir/
+
+# Node.js dependencies and build outputs (si se usa frontend en el mismo repo)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/wailsjs/
+
+# IDE / OS specific
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
