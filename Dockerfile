@@ -1,68 +1,64 @@
-# Etapa 1: Build del Frontend y Wails CLI
+# Etapa 1: Builder - Compilar Frontend y Backend
 FROM golang:1.24.1-alpine AS builder
 
-# Instalar dependencias necesarias para Wails (Node.js, npm, librerías C)
-# Alpine usa 'apk' como gestor de paquetes
+# Instalar dependencias para frontend (Node.js, npm) y backend (git, gcc, musl-dev para CGO si es necesario)
 RUN apk add --no-cache nodejs npm git gcc musl-dev
 
-# Instalar Wails CLI
-RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+# Establecer directorio de trabajo para toda la aplicación
+WORKDIR /app
 
-# Establecer el directorio de trabajo para el frontend
+# --- Construir Frontend ---
+# Copiar archivos de configuración del frontend primero para cachear dependencias de npm
+COPY frontend/package.json frontend/package-lock.json* ./frontend/
 WORKDIR /app/frontend
-
-# Copiar archivos de package.json y package-lock.json (o yarn.lock)
-COPY frontend/package.json frontend/package-lock.json* ./
-
-# Instalar dependencias del frontend
 RUN npm install
 
-# Copiar el resto del código del frontend
-COPY frontend/ .
-
-# Construir el frontend
+# Copiar el resto de los archivos del frontend y construir
+COPY frontend/ ./ 
 RUN npm run build
+# Los archivos compilados del frontend estarán en /app/frontend/dist
 
-# Establecer el directorio de trabajo para la raíz del proyecto Go
+# --- Construir Backend ---
+# Volver al directorio raíz de la aplicación
 WORKDIR /app
 
-# Copiar el código Go y archivos relacionados (go.mod, go.sum, etc.)
+# Copiar archivos go.mod y go.sum para cachear dependencias de Go
 COPY go.mod go.sum ./
-COPY cmd cmd/
-COPY internal internal/
-COPY app.go .
-COPY wails.json ./
-# Copiar cualquier otro archivo .go o directorio necesario en la raíz o subdirectorios
-# Ejemplo: COPY main.go .
+# Descargar dependencias de Go (opcional, go build también las descarga)
+# RUN go mod download 
 
-# El directorio 'frontend' con 'frontend/dist' ya está en /app/frontend desde los pasos anteriores.
-# Wails build debería encontrarlo automáticamente.
+# Copiar el resto del código fuente de la aplicación Go
+COPY . .
 
-# Construir la aplicación Wails. El binario se llamará 'yamerito-mvp' (por tu go.mod o wails.json)
-# Usamos el nombre 'yamerito-server' para el output para claridad.
-RUN wails build -trimpath -ldflags="-s -w" -o yamerito-server
+# Compilar el backend Go (nuestro servidor API)
+# El output será /app/yamerito-server
+RUN go build -ldflags="-s -w" -o yamerito-server ./cmd/server/main.go
 
-# Etapa 2: Imagen Final (Runtime)
+
+# Etapa 2: Final - Crear la imagen de producción ligera
 FROM alpine:latest AS final
 
-# Instalar certificados CA para conexiones HTTPS si tu app los necesita
-RUN apk --no-cache add ca-certificates
+# Argumento para el puerto (puede ser sobrescrito en tiempo de ejecución de DigitalOcean)
+ARG APP_PORT=8080
+ENV PORT=${APP_PORT}
 
-# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar el binario construido desde la etapa 'builder'
+# Copiar el binario del backend compilado desde la etapa builder
 COPY --from=builder /app/yamerito-server .
 
-# Copiar el certificado CA si lo necesitas en el contenedor de producción
-# Asegúrate de que ca-certificate.crt esté en la raíz de tu proyecto y no en .gitignore si es para producción.
-# Si tu .env lo referencia y el .env NO se copia al contenedor (buenas práctica para secretos),
-# entonces el path en el .env (pasado como variable de entorno a DO) debe ser relativo al WORKDIR aquí.
-COPY ca-certificate.crt .
+# Copiar los assets del frontend compilado desde la etapa builder
+# El servidor Go espera encontrarlos en ./frontend/dist relativo a su ubicación
+COPY --from=builder /app/frontend/dist ./frontend/dist/
 
-# Exponer el puerto en el que la aplicación Go escucha (ej. 8080)
-EXPOSE 8080
+# Copiar el certificado CA si es necesario para la conexión a la BD en producción
+# Asegúrate que ca-certificate.crt esté en la raíz de tu proyecto y NO en .gitignore
+# Si no usas SSL o la CA es pública, puedes omitir esto.
+COPY ca-certificate.crt ./
+
+# Exponer el puerto en el que la aplicación se ejecutará
+EXPOSE ${APP_PORT}
 
 # Comando para ejecutar la aplicación
-# GIN_MODE=release se debe pasar como variable de entorno en DigitalOcean
-ENTRYPOINT ["./yamerito-server"]
+# El backend (yamerito-server) ahora sirve la API y el frontend
+ENTRYPOINT ["/app/yamerito-server"]

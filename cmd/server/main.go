@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/Unikyri/yamerito-mvp/internal/config"
 	"github.com/Unikyri/yamerito-mvp/internal/database"
@@ -100,6 +102,35 @@ func main() {
 		}
 	}
 	// --- Fin Configurar Handlers y Rutas de la API ---
+
+	// --- Servir Frontend --- 
+	// Obtener la ruta del ejecutable para construir rutas relativas de forma segura
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Fatalf("Error al obtener la ruta del ejecutable: %v", err)
+	}
+	exeDir := filepath.Dir(exePath)
+	// Asumimos que 'frontend/dist' está al mismo nivel que el ejecutable o en una estructura conocida
+	// En Docker, copiaremos 'frontend/dist' a './frontend/dist' relativo a donde esté el server.
+	staticFilesPath := filepath.Join(exeDir, "frontend", "dist") 
+	// Si en Docker el binario está en /app/yamerito-server y los assets en /app/frontend/dist, 
+	// entonces la ruta relativa desde el binario (en /app) sería "./frontend/dist"
+	// Para simplificar y hacerlo más robusto en Docker, usaremos una ruta relativa directa que esperamos
+	// que esté presente donde se ejecute el binario.
+	// Este path funcionará si el directorio 'frontend/dist' está al lado del ejecutable.
+	// En el Dockerfile, nos aseguraremos de que esto sea así.
+	router.Static("/assets", filepath.Join(staticFilesPath, "assets")) // Servir assets JS/CSS etc.
+
+	// Servir index.html para la raíz y cualquier otra ruta no API (catch-all para SPA)
+	router.NoRoute(func(c *gin.Context) {
+		// Solo interceptar si no es una ruta de API para evitar conflictos
+		if len(c.Request.URL.Path) > 4 && c.Request.URL.Path[:5] == "/api/" {
+			c.Next() // Dejar que el router maneje la ruta API (que resultará en 404 si no existe)
+			return
+		}
+		c.File(filepath.Join(staticFilesPath, "index.html"))
+	})
+	// --- Fin Servir Frontend ---
 
 	// Iniciar el servidor
 	serverPort := config.GetEnv("API_SERVER_PORT", "8080") // Puedes definir esto en .env
