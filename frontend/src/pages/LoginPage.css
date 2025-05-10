@@ -1,0 +1,185 @@
+/* Importamos la fuente Rye de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Rye&display=swap');
+
+/* Variables CSS para colores de la paleta */
+:root {
+  --color-brown: #A35A33;
+  --color-gold: #F2C94C;
+  --color-beige: #F5E0C3;
+  --color-green: #6B8440;
+  --color-coral: #E07A5F;
+  --color-dark-brown: #603813;
+}
+
+/* Contenedor principal */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  font-family: 'Rye', cursive;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Imagen de fondo que ocupa toda la pantalla */
+.background-image {
+  background-image: url('../assets/images/LogoLogin.png');
+  background-size: 100% 100%;    /* Estira la imagen para cubrir todo el contenedor sin recortar */
+  background-repeat: no-repeat;
+  background-color: #A35A33;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+/* Estilos para el título YaMerito */
+.login-title {
+  font-size: 4rem;
+  color: var(--color-beige);
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  text-align: center;
+  margin: -4rem 0 1rem;  /* Margen negativo para subir el título */
+  position: relative;
+  z-index: 2;
+}
+
+/* Contenido principal (centrado) */
+.login-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+/* Contenedor del tablón (imagen + formulario) */
+.login-board {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Imagen del tablón */
+.login-board-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Formulario superpuesto sobre la imagen del tablón */
+.login-form {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Campos de entrada (posicionados absolutamente para ubicarlos exactamente sobre la imagen) */
+.username-field, .password-field {
+  position: absolute;
+  height: 42px;
+  left: 14%;
+  width: 72%;
+}
+
+/* Ajustar posición específica de cada campo */
+.username-field {
+  top: 48%;   /* Ajustado para centrar en el primer espacio del tablón */
+}
+
+.password-field {
+  top: 60%;   /* Ajustado para centrar en el segundo espacio del tablón */
+}
+
+/* Estilo para los inputs (transparentes para que se vea la imagen de fondo) */
+.username-field input, .password-field input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0 10px 0 40px; /* Espacio para el icono que ya está en la imagen */
+  color: #5C3A21; /* Marrón oscuro para el texto */
+  font-family: 'Rye', cursive;
+  font-size: 16px;
+}
+
+/* Placeholder text */
+.username-field input::placeholder, .password-field input::placeholder {
+  color: rgba(92, 58, 33, 0.5); /* Marrón oscuro semitransparente */
+}
+
+/* Botón de iniciar sesión (posicionado absolutamente) */
+.login-button {
+  position: absolute;
+  top: 71%;    /* Ajustado para centrar en el botón del tablón */
+  left: 14%;
+  width: 72%;
+  height: 42px;
+  background: transparent;
+  border: none;
+  color: #5C3A21; /* Marrón oscuro para el texto */
+  cursor: pointer;
+  font-family: 'Rye', cursive;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Para accesibilidad, ahora hacemos visible el span */
+.login-button span {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+/* Mensaje de error */
+.error-message {
+  margin-top: 20px;
+  padding: 12px 15px;
+  background-color: #F5E0C3; /* Beige claro */
+  color: #E07A5F; /* Coral */
+  border: 2px solid #E07A5F;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  text-align: center;
+  max-width: 400px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-title {
+    font-size: 2.5rem;
+    margin: 0.5rem 0;
+  }
+  
+  .login-content {
+    padding: 10px;
+  }
+  
+  .login-board {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .login-board {
+    max-width: 450px;
+  }
+  
+  .login-title {
+    font-size: 4.5rem;
+  }
+} 
